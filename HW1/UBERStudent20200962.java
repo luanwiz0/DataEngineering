@@ -1,8 +1,5 @@
 import java.io.IOException;
 import java.util.*;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.format.TextStyle;
 
 import org.apache.hadoop.conf.*;
 import org.apache.hadoop.fs.FileSystem;
@@ -23,20 +20,19 @@ public class UBERStudent20200962
 
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException 
 		{
-			StringTokenizer itr = new StringTokenizer(value.toString(), ",");
-			while(itr.hasMoreTokens())
-			{
-				String local = itr.nextToken();
-				String[] dateString = itr.nextToken().split("/");
-				LocalDate date = LocalDate.of(Integer.parseInt(dateString[2]), 
-						Integer.parseInt(dateString[0]), Integer.parseInt(dateString[1]));
-				DayOfWeek dayOfWeek = date.getDayOfWeek();
-				String day = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.US).toUpperCase();
-
-				map_key.set(local + "," + day);
-				map_value.set(itr.nextToken() + "," + itr.nextToken());
-				context.write(map_key, map_value);
-			}
+			String[] data = value.toString().split(",");
+		    	String region = data[0];
+		    	String date = data[1];
+		   	String vehicles = data[2];
+		    	String trips = data[3];
+		
+		 	String[] weekDays = {"SUN", "MON", "TUE", "WED", "THR", "FRI", "SAT"};
+           	    	Date day = new Date(date);
+		    	String dayStr = weekDays[day.getDay()];
+			
+		    	map_key.set(region + "," + dayStr);
+		    	map_value.set(trips + "," + vehicles);
+		    	context.write(regionDate, tripVehicle);
 		}
 	}
 
@@ -50,8 +46,8 @@ public class UBERStudent20200962
 			int trips = 0;
 			for(Text val : values){
 				String[] data = val.toString().split(",");
-				vehicles += Integer.parseInt(data[0]);
-				trips += Integer.parseInt(data[1]);
+				trips += Integer.parseInt(data[0]);
+				vehicles += Integer.parseInt(data[1]);
 			}
 			result.set(trips + "," + vehicles);
 			context.write(key, result);
