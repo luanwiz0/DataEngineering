@@ -32,7 +32,7 @@ public class UBERStudent20200962
 			
 		    	map_key.set(region + "," + dayStr);
 		    	map_value.set(trips + "," + vehicles);
-		    	context.write(regionDate, tripVehicle);
+		    	context.write(map_key, map_value);
 		}
 	}
 
