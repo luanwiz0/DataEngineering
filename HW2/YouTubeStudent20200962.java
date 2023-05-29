@@ -27,7 +27,7 @@ public class YouTubeStudent20200962{
 	}
 
 	public static class YoutubeComparator implements Comparator<Youtube>{
-		public int compare(Youtube x, Yotube y){
+		public int compare(Youtube x, Youtube y){
 			if(x.rating > y.rating) return 1;
 			else if(x.rating < y.rating) return -1;
 			return 0;
@@ -37,7 +37,7 @@ public class YouTubeStudent20200962{
 	public static void insertYoutube(PriorityQueue q, String category, double rating, int topK){
 		Youtube head = (Youtube) q.peek();
 		if ( q.size() < topK || head.rating < rating ){
-			Youtube y = new Emp(category, rating);
+			Youtube y = new Youtube(category, rating);
 			q.add(y);
 			if( q.size() > topK ) q.remove();
 		}
@@ -46,7 +46,7 @@ public class YouTubeStudent20200962{
 	public static class TopKMapper extends Mapper<Object, Text, Text, DoubleWritable> {
 
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-			String[] data = value.toString().split("|");
+			String[] data = value.toString().split("\\|");
 			String category = data[3];
 			double rating = Double.parseDouble(data[6]);
 			context.write(new Text(category), new DoubleWritable(rating));
@@ -54,8 +54,8 @@ public class YouTubeStudent20200962{
 	}
 
 	public static class TopKReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
-		private PriorityQueue<Emp> queue;
-		private Comparator<Emp> comp = new YouTubeComparator();
+		private PriorityQueue<Youtube> queue;
+		private Comparator<Youtube> comp = new YouTubeComparator();
 		private int topK;
 
 		public void reduce(Text key, Iterable<DoubleWritable> values, Context context) throws IOException, InterruptedException
