@@ -1,3 +1,15 @@
+import java.io.*;
+import java.util.*;
+import org.apache.hadoop.conf.*;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapred.lib.*;
+import org.apache.hadoop.mapreduce.lib.input.*;
+import org.apache.hadoop.mapreduce.lib.output.*;
+import org.apache.hadoop.util.GenericOptionsParser;
+
 public class YouTubeStudent20200962{
 
 	public class Youtube {
@@ -42,7 +54,7 @@ public class YouTubeStudent20200962{
 	}
 
 	public static class TopKReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
-		private PriorityQueue<Emp> queue ;
+		private PriorityQueue<Emp> queue;
 		private Comparator<Emp> comp = new EmpComparator();
 		private int topK;
 
@@ -73,5 +85,30 @@ public class YouTubeStudent20200962{
 		}
 	}
 			
+	 public static void main(String[] args) throws Exception {
+		Configuration conf = new Configuration();
+		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+		if (otherArgs.length != 3) {
+		    System.err.println("Usage: YouTubeStudent20200962 <in> <out> <topK>");
+		    System.exit(2);
+		}
+
+		int topK = Integer.parseInt(otherArgs[2]);
+		conf.setInt("topK", topK);
+		Job job = new Job(conf, "YouTubeStudent20200962");
+		job.setJarByClass(YouTubeStudent20200962.class);
+		job.setMapperClass(TopKMapper.class);
+		job.setReducerClass(TopKReducer.class);
+
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(DoubleWritable.class);
+		job.setMapOutputKeyClass(Text.class);
+		job.setMapOutputValueClass(DoubleWritable.class);
+
+		FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
+		FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
+		FileSystem.get(job.getConfiguration()).delete( new Path(otherArgs[1]), true);
+		System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
 	
 }
