@@ -12,7 +12,7 @@ import org.apache.hadoop.util.GenericOptionsParser;
 
 public class YouTubeStudent20200962{
 
-	public class Youtube {
+	public static class Youtube {
 		public String category;
 		public double rating;
 
@@ -26,7 +26,7 @@ public class YouTubeStudent20200962{
 		}
 	}
 
-	public static class youtubeComparator implements Comparator<Youtube>{
+	public static class YoutubeComparator implements Comparator<Youtube>{
 		public int compare(Youtube x, Yotube y){
 			if(x.rating > y.rating) return 1;
 			else if(x.rating < y.rating) return -1;
@@ -35,7 +35,7 @@ public class YouTubeStudent20200962{
 	}
 
 	public static void insertYoutube(PriorityQueue q, String category, double rating, int topK){
-		Youtube  head = (Youtube) q.peek();
+		Youtube head = (Youtube) q.peek();
 		if ( q.size() < topK || head.rating < rating ){
 			Youtube y = new Emp(category, rating);
 			q.add(y);
@@ -55,7 +55,7 @@ public class YouTubeStudent20200962{
 
 	public static class TopKReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
 		private PriorityQueue<Emp> queue;
-		private Comparator<Emp> comp = new EmpComparator();
+		private Comparator<Emp> comp = new YouTubeComparator();
 		private int topK;
 
 		public void reduce(Text key, Iterable<DoubleWritable> values, Context context) throws IOException, InterruptedException
