@@ -12,114 +12,37 @@ import org.apache.hadoop.util.GenericOptionsParser;
 
 public class IMDBStudent20200962
 {
-	public static class MovieData{
+	public static class Movie{
        		public String title;
-        	public int rating;
+        	public double rating;
 
-        	public MovieData(String title, int rating){
+        	public Movie(String title, double rating){
         	        this.title = title;
         	        this.rating = rating;
         	}
-	
-	        public String toString(){
-	                return title + " " + rating;
-	        }
 	}
 
-	public static class DoubleString implements WritableComparable
-	{
-		String joinKey = new String();
-		String tableName = new String();
-
-		public DoubleString() {}
-		public DoubleString( String _joinKey, String _tableName )
-		{
-			joinKey = _joinKey;
-			tableName = _tableName;
-		}
-
-		public void readFields(DataInput in) throws IOException
-		{
-			joinKey = in.readUTF();
-			tableName = in.readUTF();
-		}
-
-		public void write(DataOutput out) throws IOException {
-			out.writeUTF(joinKey);
-			out.writeUTF(tableName);
-		}
-
-		public int compareTo(Object o1)
-		{
-			DoubleString o = (DoubleString) o1;
-			int ret = joinKey.compareTo( o.joinKey );
-			if (ret!=0) return ret;
-			return tableName.compareTo( o.tableName);
-		}
-
-		public String toString() { return joinKey + " " + tableName; }
-	}
-
-	public static class CompositeKeyComparator extends WritableComparator 
-	{
-		protected CompositeKeyComparator() {
-			super(DoubleString.class, true);
-		}
-
-		public int compare(WritableComparable w1, WritableComparable w2) {
-			DoubleString k1 = (DoubleString)w1;
-			DoubleString k2 = (DoubleString)w2;
-			
-			int result = k1.joinKey.compareTo(k2.joinKey);
-			if(0 == result) {
-				result = k1.tableName.compareTo(k2.tableName);
-			}
-			return result;
-		}	
-	}
-
-	public static class FirstPartitioner extends Partitioner<DoubleString, Text>
-	{
-		public int getPartition(DoubleString key, Text value, int numPartition)
-		{
-			return key.joinKey.hashCode()%numPartition;
-		}
-	}
-
-	public static class FirstGroupingComparator extends WritableComparator 
-	{
-		protected FirstGroupingComparator(){
-			super(DoubleString.class, true);
-		}
-
-		public int compare(WritableComparable w1, WritableComparable w2) {
-			DoubleString k1 = (DoubleString)w1;
-			DoubleString k2 = (DoubleString)w2;
-
-			return k1.joinKey.compareTo(k2.joinKey);
-		}
-	}
-
-	public static class MovieComparator implements Comparator<MovieData>{
-		public int compare(MovieData x, MovieData y){
+	public static class MovieComparator implements Comparator<Movie>{
+		public int compare(Movie x, Movie y){
                		if(x.rating > y.rating) return 1;
                		else if(x.rating < y.rating) return -1;
                 	return 0;
         	}	
 	}
 	
-	public static void insertMovie(PriorityQueue q, String title, int rating, int topK){
-		MovieData head = (MovieData) q.peek();
+	public static void insertMovie(PriorityQueue q, String title, double rating, int topK){
+		Movie head = (Movie) q.peek();
 		if(q.size() < topK || head.rating < rating){
-			MovieData movie = new MovieData(title, rating);
+			Movie movie = new Movie(title, rating);
 			q.add(movie);
 			if(q.size() > topK) q.remove();
 		}
 	}
 	
-	public static class IMDBMapper extends Mapper<Object, Text, DoubleString, Text>
+	public static class IMDBMapper extends Mapper<Object, Text, Text, Text>
 	{
 		boolean movieFile = true;
+		Text outputKey = new Text();
 		Text outputValue = new Text();
 
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException
@@ -130,27 +53,27 @@ public class IMDBStudent20200962
 				String id = data[0];
 				String title = data[1];
 				String genreStr = data[2];
-				DoubleString joinKey = new DoubleString(id, "M");
+				StringTokenizer itr = new StringTokenizer(genreStr, "|");
 				
 				boolean isFantasy = false;
-				for(String genre : genreStr.split("|")){
-					if(genre.equals("Fantasy")){
+				while(itr.hasMoreTokens()){
+					if(itr.nextToken().equals("Fantasy"))
 						isFantasy = true;
-						break;
-					}
 				}
+				
 				if(isFantasy){
+					outputKey.set(id);
 					outputValue.set("title:" + title);
-					context.write(joinKey, outputValue);
+					context.write(outputKey, outputValue);
 				}
 			}
 			else {  // rating file
 				String id = data[1];
                                 String rating = data[2];
-				DoubleString joinKey = new DoubleString(id, "R");
 		
+				outputKey.set(id);
 				outputValue.set("rating:" + rating);
-				context.write(joinKey, outputValue);
+				context.write(outputKey, outputValue);
 			}
 		}
 		
@@ -163,20 +86,22 @@ public class IMDBStudent20200962
 		}
 	}
 
-	public static class IMDBReducer extends Reducer<DoubleString,Text,Text,Text>
+	public static class IMDBReducer extends Reducer<Text,Text,Text,DoubleWritable>
 	{
-		private PriorityQueue<MovieData> queue;
-		private Comparator<MovieData> comp = new MovieComparator();
+		private PriorityQueue<Movie> queue;
+		private Comparator<Movie> comp = new MovieComparator();
 		private int topK;
+		Text outputKey = new Text();
+		DoubleWritable outputValue = new DoubleWritable();
 
-		public void reduce(DoubleString key, Iterable<Text> values, Context context) throws IOException, InterruptedException 
+		public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException 
 		{
 			String title = "";
-			int rating = 0;
+			double rating = 0;
 			int count = 0;
 
 			for (Text val : values) {
-				if(val.toString().split(":")[1].equals("title")){
+				if(val.toString().split(":")[0].equals("title")){
 					title = val.toString();
 				}
 				else {	
@@ -185,20 +110,22 @@ public class IMDBStudent20200962
 				}
 			}
 			
-			rating = rating / count;
+			rating = rating / (double) count;
 			insertMovie(queue, title, rating, topK);
 		}
 
 		public void setup(Context context) throws IOException, InterruptedException{
 			Configuration conf = context.getConfiguration();
 			topK = conf.getInt("topK", -1);
-			queue = new PriorityQueue<MovieData>(topK, comp);
+			queue = new PriorityQueue<Movie>(topK , comp);
 		}
 
 		public void cleanup(Context context) throws IOException, InterruptedException{
 			while(queue.size() != 0){
-				MovieData movieData = (MovieData) queue.remove();
-				context.write(new Text(movieData.title), new Text(Integer.toString(movieData.rating)));
+				Movie movie = (Movie) queue.remove();
+				outputKey.set(movie.title);
+				outputValue.set(movie.rating);
+				context.write(outputKey, outputValue);
 			}
 		}	
 	}
@@ -212,7 +139,7 @@ public class IMDBStudent20200962
 			System.exit(2);
 		}
 
-		int topK = Integer.valueOf(otherArgs[2]);
+		int topK = Integer.parseInt(otherArgs[2]);
 		conf.setInt("topK", topK);
 		Job job = new Job(conf, "IMDB");
 		job.setJarByClass(IMDBStudent20200962.class);
@@ -221,12 +148,6 @@ public class IMDBStudent20200962
 	
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
-		job.setMapOutputKeyClass(DoubleString.class);
-		job.setMapOutputValueClass(Text.class);
-	
-		job.setPartitionerClass(FirstPartitioner.class);
-		job.setGroupingComparatorClass(FirstGroupingComparator.class);
-		job.setSortComparatorClass(CompositeKeyComparator.class);
 
 		FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
 		FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
