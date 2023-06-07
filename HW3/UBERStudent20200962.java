@@ -40,7 +40,7 @@ public final class UBERStudent20200962 {
 				String[] dataY = y.toString().split(",");
 		
 				int trips = Integer.parseInt(dataX[0]) + Integer.parseInt(dataY[0]);
-				int vehicles = Integer.parseInt(dataX[1]) + Integer.parseInt(dataY[0]);
+				int vehicles = Integer.parseInt(dataX[1]) + Integer.parseInt(dataY[1]);
 				return trips + "," + vehicles;
 			}
 		};
