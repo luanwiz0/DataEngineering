@@ -6,6 +6,7 @@ import org.apache.spark.api.java.function.*;
 
 import java.io.Serializable;
 import java.util.*;
+import java.time.*;
 
 public final class UBERStudent20200962 {
 	public static void main(String[] args) throws Exception {
@@ -14,7 +15,7 @@ public final class UBERStudent20200962 {
 			.appName("UBERStudent20200962")
 			.getOrCreate();
 
-		String[] weekDays = {"SUN", "MON", "TUE", "WED", "THR", "FRI", "SAT"};
+		String[] weekDays = {"MON", "TUE", "WED", "THR", "FRI", "SAT", "SUN"};
    
 		JavaRDD<String> lines = spark.read().textFile(args[0]).javaRDD();
 
@@ -22,13 +23,19 @@ public final class UBERStudent20200962 {
 		PairFunction<String, String, String> pf = new PairFunction<String, String, String>(){
 			public Tuple2<String, String> call (String s){
 				String[] data = s.toString().split(",");
-		    String region = data[0];
-		    String date = data[1];
-		   	String vehicles = data[2];
-		    String trips = data[3];
-
-				Date day = new Date(date);
-				String dayStr = weekDays[day.getDay()];
+				String region = data[0];
+			 	String[] dateArr = data[1].split("/");
+				String vehicles = data[2];
+				String trips = data[3];
+				
+				int month = Integer.parseInt(dateArr[0]);
+				int day = Integer.parseInt(dateArr[1]);
+				int year = Integer.parseInt(dateArr[2]);
+				LocalDate date = LocalDate.of(year, month, day);
+				DayOfWeek dayOfWeek = date.getDayOfWeek();
+				int dayOfWeekNumber = dayOfWeek.getValue();
+		
+				String dayStr = weekDays[dayOfWeekNumber - 1];
 				return new Tuple2(region + "," + dayStr , trips + "," + vehicles);
 			}
 		};
