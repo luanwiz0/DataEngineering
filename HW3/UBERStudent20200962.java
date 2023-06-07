@@ -43,16 +43,17 @@ public final class UBERStudent20200962 {
 
 		Function2<String, String, String> f2 = new Function2<String, String, String>(){
 			public String call (String x, String y){
-				String[] dataX = x.toString().split(",");
-				String[] dataY = y.toString().split(",");
+				String[] dataX = x.split(",");
+				String[] dataY = y.split(",");
 		
 				int trips = Integer.parseInt(dataX[0]) + Integer.parseInt(dataY[0]);
-				int vehicles = Integer.parseInt(dataX[1]) + Integer.parseInt(dataY[0]);
+				int vehicles = Integer.parseInt(dataX[1]) + Integer.parseInt(dataY[1]);
 				return trips + "," + vehicles;
 			}
 		};
 		JavaPairRDD<String, String> counts = tuples.reduceByKey(f2);
 
 		counts.saveAsTextFile(args[1]);
+		spark.stop();
 	}
 }
