@@ -22,7 +22,7 @@ public final class UBERStudent20200962 {
 
 		PairFunction<String, String, String> pf = new PairFunction<String, String, String>(){
 			public Tuple2<String, String> call (String s){
-				String[] data = s.toString().split(",");
+				String[] data = s.split(",");
 				String region = data[0];
 			 	String[] dateArr = data[1].split("/");
 				String vehicles = data[2];
